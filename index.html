@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HACKMASTER — Descifra la clave</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #000000;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --border: #333333;
+  --text: #ffffff;
+  --dim: #aaaaaa;
+  --accent: #38bdf8;
+  --green: #4ade80;
+  --green-bg: #021a09;
+  --green-bd: #1a6b35;
+  --yellow: #fbbf24;
+  --yellow-bg: #1a1000;
+  --yellow-bd: #8a5200;
+  --gray: #888888;
+  --gray-bg: #111111;
+  --gray-bd: #444444;
+  --danger: #ff8080;
+  --danger-bg: #1a0000;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-size: 1rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1rem 4rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.game { width: 100%; max-width: 560px; }
+
+/* ── Header ── */
+.header { text-align: center; margin-bottom: 2rem; }
+
+.logo {
+  font-family: 'VT323', monospace;
+  font-size: 5rem;
+  line-height: 1;
+  letter-spacing: 8px;
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(56,189,248,0.35), 0 0 60px rgba(56,189,248,0.15);
+  animation: flicker 8s infinite;
+}
+
+.logo span {
+  color: var(--green);
+  text-shadow: 0 0 30px rgba(74,222,128,0.4), 0 0 60px rgba(74,222,128,0.2);
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+@keyframes flicker {
+  0%,95%,100% { opacity: 1; }
+  96% { opacity: 0.85; }
+  97% { opacity: 1; }
+  98% { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo { animation: none; }
+  .result { animation: none; }
+  .slot { transition: none; }
+  .word-btn { transition: none; transform: none !important; }
+}
+
+/* ── Mission briefing ── */
+.mission {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.mission-title {
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.mission-text {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.mission-text strong { color: var(--accent); }
+
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.dot.correct { background: var(--green); box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+.dot.partial  { background: var(--yellow); box-shadow: 0 0 8px rgba(251,191,36,0.5); }
+.dot.wrong    { background: var(--gray); }
+
+/* ── Top bar ── */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-label {
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.att-counter {
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--accent);
+}
+
+/* ── Board ── */
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 1.25rem;
+}
+
+.board-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.row-num {
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--dim);
+  width: 22px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.slot {
+  flex: 1;
+  height: 54px;
+  border-radius: 7px;
+  border: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.slot.active {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+  cursor: pointer;
+  background: rgba(56,189,248,0.05);
+}
+.slot.active:hover { background: rgba(56,189,248,0.12); }
+.slot.correct { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); box-shadow: inset 0 0 12px rgba(74,222,128,0.1); }
+.slot.partial  { background: var(--yellow-bg); border: 1px solid var(--yellow-bd); color: var(--yellow); box-shadow: inset 0 0 12px rgba(251,191,36,0.1); }
+.slot.wrong    { background: var(--gray-bg); border: 1px solid var(--gray-bd); color: var(--gray); }
+
+.row-summary {
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--dim);
+  min-width: 44px;
+  flex-shrink: 0;
+}
+
+/* ── Current guess ── */
+.current-label {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+/* ── Word bank ── */
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.word-btn {
+  height: 62px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.word-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(56,189,248,0.07);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56,189,248,0.15);
+}
+.word-btn:active:not(:disabled) { transform: translateY(0); }
+.word-btn:disabled { opacity: 0.2; cursor: default; }
+
+/* ── Action buttons ── */
+.actions { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+
+.btn {
+  height: 50px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+  padding: 0 1rem;
+  text-transform: uppercase;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.25; cursor: default; }
+
+.btn-primary {
+  flex: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(56,189,248,0.08);
+  font-size: 0.8rem;
+}
+.btn-primary:hover:not(:disabled) { background: rgba(56,189,248,0.16); }
+
+/* ── Result ── */
+.result {
+  display: none;
+  border-radius: 8px;
+  padding: 1.1rem 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  animation: slideIn 0.35s ease;
+}
+.result.win  { background: var(--green-bg); border: 2px solid var(--green-bd); color: var(--green); }
+.result.lose { background: var(--danger-bg); border: 2px solid #7a2020; color: var(--danger); }
+.result strong { font-size: 1rem; font-weight: 700; display: block; margin-bottom: 4px; }
+.pw-reveal { font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 1.1rem; letter-spacing: 2px; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.slot.correct { animation: pop 0.3s ease; }
+</style>
+</head>
+<body>
+<div class="game">
+
+  <div class="header">
+    <div class="logo">HACK<span>MASTER</span></div>
+    <div class="subtitle">sistema de descifrado — nivel principiante</div>
+  </div>
+
+  <div class="mission">
+    <div class="mission-title">[ MISIÓN ]</div>
+    <div class="mission-text">
+      Un sistema secreto está protegido por una <strong>contraseña de 3 palabras</strong>.
+      Tenés <strong>6 intentos</strong> para descubrirla. Elegí 3 palabras del banco y fijate en las pistas de colores.
+      <div class="legend">
+        <div class="legend-item"><div class="dot correct"></div><span>posición exacta ✓</span></div>
+        <div class="legend-item"><div class="dot partial"></div><span>está pero en otro lugar ~</span></div>
+        <div class="legend-item"><div class="dot wrong"></div><span>no está en la clave ✗</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-bar">
+    <div class="section-label">intentos usados</div>
+    <div class="att-counter" id="att-display">0 / 6</div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="current-label">▶ tu intento actual: <span id="guess-count">0</span>/3 palabras &nbsp;·&nbsp; clic en el slot para quitar</div>
+  <div class="board-row" id="current-row" style="margin-bottom:1.5rem;"></div>
+
+  <div class="section-label" style="margin-bottom:9px;">banco de palabras</div>
+  <div class="bank-grid" id="word-bank"></div>
+
+  <div class="actions" role="group" aria-label="Acciones del juego">
+    <button class="btn btn-primary" id="submit-btn" onclick="submitGuess()" aria-label="Enviar intento actual">▶ ENVIAR INTENTO</button>
+    <button class="btn" onclick="clearGuess()" aria-label="Limpiar selección actual">✕ LIMPIAR</button>
+    <button class="btn" onclick="newGame()" aria-label="Iniciar nueva partida">↺ NUEVA PARTIDA</button>
+  </div>
+
+  <div class="result" id="result-msg" role="alert" aria-live="polite"></div>
+</div>
+
+<script>
+const WORDS = ['ROBOT','NINJA','LASER','DRAGON','TURBO','PORTAL','ESCUDO','COHETE'];
+let secret = [], guesses = [], currentGuess = [], gameOver = false;
+
+function newGame() {
+  secret = [...WORDS].sort(() => Math.random() - 0.5).slice(0, 3);
+  guesses = []; currentGuess = []; gameOver = false;
+  const r = document.getElementById('result-msg');
+  r.style.display = 'none'; r.className = 'result';
+  render();
+}
+
+function getFeedback(guess, sec) {
+  const fb = ['wrong','wrong','wrong'];
+  const s = [...sec], g = [...guess];
+  for (let i = 0; i < 3; i++) {
+    if (g[i] === s[i]) { fb[i] = 'correct'; s[i] = null; g[i] = null; }
+  }
+  for (let i = 0; i < 3; i++) {
+    if (g[i] !== null) {
+      const idx = s.indexOf(g[i]);
+      if (idx !== -1) { fb[i] = 'partial'; s[idx] = null; }
+    }
+  }
+  return fb;
+}
+
+function submitGuess() {
+  if (gameOver || currentGuess.length !== 3) return;
+  const fb = getFeedback(currentGuess, secret);
+  guesses.push({ words: [...currentGuess], feedback: fb });
+  const won = fb.every(f => f === 'correct');
+  currentGuess = [];
+  if (won)                { gameOver = true; showResult(true);  }
+  else if (guesses.length >= 6) { gameOver = true; showResult(false); }
+  render();
+}
+
+function clearGuess()     { if (!gameOver) { currentGuess = []; render(); } }
+function removeFromGuess(i){ if (!gameOver) { currentGuess.splice(i, 1); render(); } }
+function addWord(w)        { if (!gameOver && currentGuess.length < 3 && !currentGuess.includes(w)) { currentGuess.push(w); render(); } }
+
+function showResult(won) {
+  const el = document.getElementById('result-msg');
+  el.style.display = 'block';
+  const pw = `<span class="pw-reveal">${secret.join('  ·  ')}</span>`;
+  if (won) {
+    const n = guesses.length;
+    const msgs = [
+      '¡GENIO TOTAL! 1 solo intento. Sos una leyenda del hackeo.',
+      '¡INCREÍBLE! Solo 2 intentos. Tu cerebro es una computadora.',
+      '¡MUY BIEN! 3 intentos. Misión cumplida como un pro.',
+      '¡BIEN HECHO! 4 intentos. El sistema cayó ante vos.',
+      '¡LO LOGRASTE! 5 intentos. Estuvo cerca, pero ganaste.',
+      '¡POR EL ÚLTIMO INTENTO! Pero accediste. ¡Épico!'
+    ];
+    el.className = 'result win';
+    el.innerHTML = `<strong>${msgs[n - 1]}</strong>La contraseña era: ${pw}`;
+  } else {
+    el.className = 'result lose';
+    el.innerHTML = `<strong>ACCESO DENEGADO. El sistema te bloqueó en todos los intentos.</strong>La contraseña era: ${pw} — ¡Intentalo de nuevo!`;
+  }
+}
+
+function render() {
+  document.getElementById('att-display').textContent = `${guesses.length} / 6`;
+  document.getElementById('guess-count').textContent = currentGuess.length;
+
+  // Board: always show 6 rows
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const row = document.createElement('div');
+    row.className = 'board-row';
+
+    const num = document.createElement('div');
+    num.className = 'row-num';
+    num.textContent = i + 1;
+    row.appendChild(num);
+
+    if (i < guesses.length) {
+      const g = guesses[i];
+      g.words.forEach((w, j) => {
+        const slot = document.createElement('div');
+        slot.className = `slot ${g.feedback[j]}`;
+        slot.textContent = w;
+        row.appendChild(slot);
+      });
+      const c = g.feedback.filter(f => f === 'correct').length;
+      const p = g.feedback.filter(f => f === 'partial').length;
+      const sum = document.createElement('div');
+      sum.className = 'row-summary';
+      sum.innerHTML = `<span style="color:var(--green)">${c}✓</span> <span style="color:var(--yellow)">${p}~</span>`;
+      row.appendChild(sum);
+    } else {
+      for (let j = 0; j < 3; j++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.textContent = '—';
+        row.appendChild(slot);
+      }
+      row.appendChild(Object.assign(document.createElement('div'), { className: 'row-summary' }));
+    }
+    board.appendChild(row);
+  }
+
+  // Current row
+  const cr = document.getElementById('current-row');
+  cr.innerHTML = '';
+  cr.appendChild(Object.assign(document.createElement('div'), { className: 'row-num' }));
+  for (let i = 0; i < 3; i++) {
+    const slot = document.createElement('div');
+    if (currentGuess[i]) {
+      slot.className = 'slot active';
+      slot.textContent = currentGuess[i];
+      const idx = i;
+      slot.onclick = () => removeFromGuess(idx);
+      slot.title = 'Clic para quitar';
+    } else {
+      slot.className = 'slot';
+      slot.textContent = i + 1;
+    }
+    cr.appendChild(slot);
+  }
+  cr.appendChild(Object.assign(document.createElement('div'), { className: 'row-summary' }));
+
+  // Word bank
+  const bank = document.getElementById('word-bank');
+  bank.innerHTML = '';
+  WORDS.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'word-btn';
+    btn.textContent = w;
+    btn.disabled = currentGuess.includes(w) || gameOver;
+    btn.onclick = () => addWord(w);
+    bank.appendChild(btn);
+  });
+
+  document.getElementById('submit-btn').disabled = currentGuess.length !== 3 || gameOver;
+}
+
+newGame();
+</script>
+</body>
+</html>
